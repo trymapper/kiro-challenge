@@ -1,3 +1,24 @@
+"""
+Event Management API
+
+このモジュールは、イベント管理システムのRESTful APIを提供します。
+FastAPIを使用して構築され、DynamoDBにデータを保存します。
+
+主な機能:
+- イベントのCRUD操作（作成、取得、更新、削除）
+- ステータスによるイベントのフィルタリング
+- 入力検証とエラーハンドリング
+- CORS対応
+
+使用例:
+    uvicorn main:app --reload
+
+属性:
+    app (FastAPI): FastAPIアプリケーションインスタンス
+    dynamodb: boto3 DynamoDBリソース
+    table: DynamoDBテーブルインスタンス
+"""
+
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -26,6 +47,21 @@ table = dynamodb.Table(table_name)
 
 # Pydanticモデル
 class Event(BaseModel):
+    """
+    イベントモデル
+    
+    イベントの完全な情報を表すモデル。新しいイベントを作成する際に使用されます。
+    
+    属性:
+        eventId (str): イベントの一意識別子（英数字、ハイフン、アンダースコアのみ）
+        title (str): イベントのタイトル（1-200文字）
+        description (str): イベントの説明（最大1000文字）
+        date (str): イベントの日付（YYYY-MM-DD形式）
+        location (str): イベントの場所（1-200文字）
+        capacity (int): イベントの定員（1以上）
+        organizer (str): イベント主催者（1-100文字）
+        status (str): イベントのステータス（active, cancelled, completed）
+    """
     eventId: str = Field(..., pattern=r'^[a-zA-Z0-9\-_]+$')
     title: str = Field(..., min_length=1, max_length=200)
     description: str = Field(..., max_length=1000)
@@ -37,6 +73,21 @@ class Event(BaseModel):
 
 
 class EventUpdate(BaseModel):
+    """
+    イベント更新モデル
+    
+    既存のイベントを更新する際に使用されるモデル。
+    すべてのフィールドはオプションで、指定されたフィールドのみが更新されます。
+    
+    属性:
+        title (Optional[str]): イベントのタイトル（1-200文字）
+        description (Optional[str]): イベントの説明（最大1000文字）
+        date (Optional[str]): イベントの日付（YYYY-MM-DD形式）
+        location (Optional[str]): イベントの場所（1-200文字）
+        capacity (Optional[int]): イベントの定員（1以上）
+        organizer (Optional[str]): イベント主催者（1-100文字）
+        status (Optional[str]): イベントのステータス（active, cancelled, completed）
+    """
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=1000)
     date: Optional[str] = Field(None, pattern=r'^\d{4}-\d{2}-\d{2}$')
@@ -48,17 +99,48 @@ class EventUpdate(BaseModel):
 
 @app.get("/")
 async def root():
+    """
+    ルートエンドポイント
+    
+    APIの基本情報を返します。
+    
+    Returns:
+        dict: APIの名前を含む辞書
+    """
     return {"message": "Event Management API"}
 
 
 @app.get("/health")
 async def health():
+    """
+    ヘルスチェックエンドポイント
+    
+    APIの稼働状態を確認します。
+    
+    Returns:
+        dict: ステータス情報を含む辞書
+    """
     return {"status": "healthy"}
 
 
 @app.get("/events", status_code=status.HTTP_200_OK)
 async def get_events(status_filter: Optional[str] = None):
-    """全イベントを取得（オプションでステータスフィルタ）"""
+    """
+    全イベントを取得
+    
+    データベースに保存されているすべてのイベントを取得します。
+    オプションでステータスによるフィルタリングが可能です。
+    
+    Args:
+        status_filter (Optional[str]): イベントのステータスでフィルタリング
+            （active, cancelled, completed）
+    
+    Returns:
+        List[dict]: イベントのリスト
+    
+    Raises:
+        HTTPException: イベントの取得に失敗した場合（500エラー）
+    """
     try:
         if status_filter:
             response = table.scan(
@@ -93,7 +175,20 @@ async def get_events(status_filter: Optional[str] = None):
 
 @app.post("/events", status_code=status.HTTP_201_CREATED)
 async def create_event(event: Event):
-    """新しいイベントを作成"""
+    """
+    新しいイベントを作成
+    
+    提供されたイベント情報を使用して、新しいイベントをデータベースに作成します。
+    
+    Args:
+        event (Event): 作成するイベントの情報
+    
+    Returns:
+        dict: 作成されたイベントの情報
+    
+    Raises:
+        HTTPException: イベントの作成に失敗した場合（500エラー）
+    """
     try:
         # DynamoDBの予約語を避けるためフィールド名を変更
         item = {
@@ -128,7 +223,21 @@ async def create_event(event: Event):
 
 @app.get("/events/{event_id}", status_code=status.HTTP_200_OK)
 async def get_event(event_id: str):
-    """特定のイベントを取得"""
+    """
+    特定のイベントを取得
+    
+    指定されたIDのイベント情報を取得します。
+    
+    Args:
+        event_id (str): 取得するイベントのID
+    
+    Returns:
+        dict: イベントの情報
+    
+    Raises:
+        HTTPException: イベントが見つからない場合（404エラー）
+        HTTPException: イベントの取得に失敗した場合（500エラー）
+    """
     try:
         response = table.get_item(Key={'eventId': event_id})
         
@@ -160,7 +269,24 @@ async def get_event(event_id: str):
 
 @app.put("/events/{event_id}", status_code=status.HTTP_200_OK)
 async def update_event(event_id: str, event_update: EventUpdate):
-    """イベントを更新"""
+    """
+    イベントを更新
+    
+    指定されたIDのイベント情報を更新します。
+    提供されたフィールドのみが更新されます。
+    
+    Args:
+        event_id (str): 更新するイベントのID
+        event_update (EventUpdate): 更新する情報
+    
+    Returns:
+        dict: 更新後のイベント情報
+    
+    Raises:
+        HTTPException: イベントが見つからない場合（404エラー）
+        HTTPException: 更新するフィールドがない場合（400エラー）
+        HTTPException: イベントの更新に失敗した場合（500エラー）
+    """
     try:
         # イベントが存在するか確認
         response = table.get_item(Key={'eventId': event_id})
@@ -231,7 +357,21 @@ async def update_event(event_id: str, event_update: EventUpdate):
 
 @app.delete("/events/{event_id}", status_code=status.HTTP_200_OK)
 async def delete_event(event_id: str):
-    """イベントを削除"""
+    """
+    イベントを削除
+    
+    指定されたIDのイベントをデータベースから削除します。
+    
+    Args:
+        event_id (str): 削除するイベントのID
+    
+    Returns:
+        dict: 削除成功メッセージ
+    
+    Raises:
+        HTTPException: イベントが見つからない場合（404エラー）
+        HTTPException: イベントの削除に失敗した場合（500エラー）
+    """
     try:
         # イベントが存在するか確認
         response = table.get_item(Key={'eventId': event_id})

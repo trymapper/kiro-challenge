@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Management API Documentation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px;
+        }
+        h3 {
+            color: #7f8c8d;
+            margin-top: 20px;
+        }
+        .endpoint {
+            background-color: #ecf0f1;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        .method {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 10px;
+            font-size: 12px;
+        }
+        .get { background-color: #61affe; color: white; }
+        .post { background-color: #49cc90; color: white; }
+        .put { background-color: #fca130; color: white; }
+        .delete { background-color: #f93e3e; color: white; }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        pre {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .model {
+            background-color: #fff3cd;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            border-left: 4px solid #ffc107;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Event Management API Documentation</h1>
+        
+        <p>FastAPIベースのイベント管理システムのRESTful APIドキュメント</p>
+        
+        <h2>概要</h2>
+        <p>このAPIは、イベントの作成、取得、更新、削除（CRUD操作）を提供します。すべてのデータはAWS DynamoDBに保存されます。</p>
+        
+        <h2>ベースURL</h2>
+        <pre>https://ezlgcqjw65.execute-api.us-west-2.amazonaws.com/prod/</pre>
+        
+        <h2>データモデル</h2>
+        
+        <div class="model">
+            <h3>Event</h3>
+            <p>イベントの完全な情報を表すモデル</p>
+            <table>
+                <tr>
+                    <th>フィールド</th>
+                    <th>型</th>
+                    <th>必須</th>
+                    <th>説明</th>
+                </tr>
+                <tr>
+                    <td><code>eventId</code></td>
+                    <td>string</td>
+                    <td>はい</td>
+                    <td>イベントの一意識別子（英数字、ハイフン、アンダースコアのみ）</td>
+                </tr>
+                <tr>
+                    <td><code>title</code></td>
+                    <td>string</td>
+                    <td>はい</td>
+                    <td>イベントのタイトル（1-200文字）</td>
+                </tr>
+                <tr>
+                    <td><code>description</code></td>
+                    <td>string</td>
+                    <td>はい</td>
+                    <td>イベントの説明（最大1000文字）</td>
+                </tr>
+                <tr>
+                    <td><code>date</code></td>
+                    <td>string</td>
+                    <td>はい</td>
+                    <td>イベントの日付（YYYY-MM-DD形式）</td>
+                </tr>
+                <tr>
+                    <td><code>location</code></td>
+                    <td>string</td>
+                    <td>はい</td>
+                    <td>イベントの場所（1-200文字）</td>
+                </tr>
+                <tr>
+                    <td><code>capacity</code></td>
+                    <td>integer</td>
+                    <td>はい</td>
+                    <td>イベントの定員（1以上）</td>
+                </tr>
+                <tr>
+                    <td><code>organizer</code></td>
+                    <td>string</td>
+                    <td>はい</td>
+                    <td>イベント主催者（1-100文字）</td>
+                </tr>
+                <tr>
+                    <td><code>status</code></td>
+                    <td>string</td>
+                    <td>はい</td>
+                    <td>イベントのステータス（active, cancelled, completed）</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="model">
+            <h3>EventUpdate</h3>
+            <p>イベント更新用のモデル（すべてのフィールドはオプション）</p>
+            <table>
+                <tr>
+                    <th>フィールド</th>
+                    <th>型</th>
+                    <th>必須</th>
+                    <th>説明</th>
+                </tr>
+                <tr>
+                    <td><code>title</code></td>
+                    <td>string</td>
+                    <td>いいえ</td>
+                    <td>イベントのタイトル（1-200文字）</td>
+                </tr>
+                <tr>
+                    <td><code>description</code></td>
+                    <td>string</td>
+                    <td>いいえ</td>
+                    <td>イベントの説明（最大1000文字）</td>
+                </tr>
+                <tr>
+                    <td><code>date</code></td>
+                    <td>string</td>
+                    <td>いいえ</td>
+                    <td>イベントの日付（YYYY-MM-DD形式）</td>
+                </tr>
+                <tr>
+                    <td><code>location</code></td>
+                    <td>string</td>
+                    <td>いいえ</td>
+                    <td>イベントの場所（1-200文字）</td>
+                </tr>
+                <tr>
+                    <td><code>capacity</code></td>
+                    <td>integer</td>
+                    <td>いいえ</td>
+                    <td>イベントの定員（1以上）</td>
+                </tr>
+                <tr>
+                    <td><code>organizer</code></td>
+                    <td>string</td>
+                    <td>いいえ</td>
+                    <td>イベント主催者（1-100文字）</td>
+                </tr>
+                <tr>
+                    <td><code>status</code></td>
+                    <td>string</td>
+                    <td>いいえ</td>
+                    <td>イベントのステータス（active, cancelled, completed）</td>
+                </tr>
+            </table>
+        </div>
+        
+        <h2>エンドポイント</h2>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span> /</h3>
+            <p><strong>説明:</strong> APIの基本情報を返します</p>
+            <p><strong>レスポンス:</strong></p>
+            <pre>{
+  "message": "Event Management API"
+}</pre>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span> /health</h3>
+            <p><strong>説明:</strong> APIの稼働状態を確認します</p>
+            <p><strong>レスポンス:</strong></p>
+            <pre>{
+  "status": "healthy"
+}</pre>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span> /events</h3>
+            <p><strong>説明:</strong> すべてのイベントを取得します</p>
+            <p><strong>クエリパラメータ:</strong></p>
+            <ul>
+                <li><code>status</code> (optional): イベントのステータスでフィルタリング（active, cancelled, completed）</li>
+            </ul>
+            <p><strong>レスポンス例:</strong></p>
+            <pre>[
+  {
+    "eventId": "event-123",
+    "title": "Tech Conference 2024",
+    "description": "Annual technology conference",
+    "date": "2024-12-15",
+    "location": "Seattle Convention Center",
+    "capacity": 500,
+    "organizer": "Tech Corp",
+    "status": "active"
+  }
+]</pre>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method post">POST</span> /events</h3>
+            <p><strong>説明:</strong> 新しいイベントを作成します</p>
+            <p><strong>リクエストボディ:</strong></p>
+            <pre>{
+  "eventId": "event-123",
+  "title": "Tech Conference 2024",
+  "description": "Annual technology conference",
+  "date": "2024-12-15",
+  "location": "Seattle Convention Center",
+  "capacity": 500,
+  "organizer": "Tech Corp",
+  "status": "active"
+}</pre>
+            <p><strong>レスポンス:</strong> 201 Created - 作成されたイベント情報</p>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span> /events/{event_id}</h3>
+            <p><strong>説明:</strong> 特定のイベントを取得します</p>
+            <p><strong>パスパラメータ:</strong></p>
+            <ul>
+                <li><code>event_id</code>: 取得するイベントのID</li>
+            </ul>
+            <p><strong>レスポンス:</strong> 200 OK - イベント情報</p>
+            <p><strong>エラー:</strong> 404 Not Found - イベントが見つからない場合</p>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method put">PUT</span> /events/{event_id}</h3>
+            <p><strong>説明:</strong> イベントを更新します</p>
+            <p><strong>パスパラメータ:</strong></p>
+            <ul>
+                <li><code>event_id</code>: 更新するイベントのID</li>
+            </ul>
+            <p><strong>リクエストボディ例:</strong></p>
+            <pre>{
+  "title": "Updated Title",
+  "capacity": 600
+}</pre>
+            <p><strong>レスポンス:</strong> 200 OK - 更新後のイベント情報</p>
+            <p><strong>エラー:</strong> 404 Not Found - イベントが見つからない場合</p>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method delete">DELETE</span> /events/{event_id}</h3>
+            <p><strong>説明:</strong> イベントを削除します</p>
+            <p><strong>パスパラメータ:</strong></p>
+            <ul>
+                <li><code>event_id</code>: 削除するイベントのID</li>
+            </ul>
+            <p><strong>レスポンス:</strong> 200 OK - 削除成功メッセージ</p>
+            <p><strong>エラー:</strong> 404 Not Found - イベントが見つからない場合</p>
+        </div>
+        
+        <h2>エラーレスポンス</h2>
+        <p>すべてのエラーは以下の形式で返されます：</p>
+        <pre>{
+  "detail": "エラーメッセージ"
+}</pre>
+        
+        <h2>使用例</h2>
+        
+        <h3>イベント一覧を取得</h3>
+        <pre>curl https://ezlgcqjw65.execute-api.us-west-2.amazonaws.com/prod/events</pre>
+        
+        <h3>アクティブなイベントのみ取得</h3>
+        <pre>curl https://ezlgcqjw65.execute-api.us-west-2.amazonaws.com/prod/events?status=active</pre>
+        
+        <h3>イベントを作成</h3>
+        <pre>curl -X POST https://ezlgcqjw65.execute-api.us-west-2.amazonaws.com/prod/events \
+  -H "Content-Type: application/json" \
+  -d '{
+    "eventId": "test-event-1",
+    "title": "Test Event",
+    "description": "This is a test event",
+    "date": "2024-12-20",
+    "location": "Test Location",
+    "capacity": 100,
+    "organizer": "Test Organizer",
+    "status": "active"
+  }'</pre>
+        
+        <h3>イベントを更新</h3>
+        <pre>curl -X PUT https://ezlgcqjw65.execute-api.us-west-2.amazonaws.com/prod/events/test-event-1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "capacity": 150
+  }'</pre>
+        
+        <h3>イベントを削除</h3>
+        <pre>curl -X DELETE https://ezlgcqjw65.execute-api.us-west-2.amazonaws.com/prod/events/test-event-1</pre>
+        
+        <h2>技術スタック</h2>
+        <ul>
+            <li><strong>FastAPI</strong>: 高性能なPython Webフレームワーク</li>
+            <li><strong>Pydantic</strong>: データ検証とシリアライゼーション</li>
+            <li><strong>Boto3</strong>: AWS SDK for Python</li>
+            <li><strong>Mangum</strong>: FastAPIをAWS Lambdaで実行するためのアダプター</li>
+            <li><strong>DynamoDB</strong>: NoSQLデータベース</li>
+            <li><strong>API Gateway</strong>: RESTful APIエンドポイント</li>
+            <li><strong>AWS Lambda</strong>: サーバーレスコンピューティング</li>
+        </ul>
+    </div>
+</body>
+</html>
